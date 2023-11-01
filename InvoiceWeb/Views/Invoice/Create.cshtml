@@ -1,0 +1,192 @@
+﻿@model  InvoiceWeb.Models.ViewModels.InvoiceViewModel
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<hr />
+
+
+<div class="container mt-4">
+    <h1>Create Invoice</h1>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label>Invoice Number:</label>
+            <input asp-for="@Model.Id" type="text" class="form-control" readonly />
+
+        </div>
+        <div class="col-md-6">
+            <label>Date:</label>
+            <input asp-for="@Model.Date" type="date" class="form-control date" readonly />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label>Store :</label>
+
+            @if (Model != null)
+            {
+                <select id="stores" class="ShopDropdown">
+
+                    @foreach (var item in Model.Stores)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                        
+                    }
+                </select>
+            }
+        </div>
+    </div>
+    <table class="table table-bordered" id="itemTable">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Unit</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+                <th>Discount</th>
+                <th>Net</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+                <tr>
+                    <td>
+                    <select id="storeItems" class="ItemDropdown">
+                        @foreach (var item in Model.Items)
+                        {
+                            <option value="@item.Id" class="name">@item.Name</option>
+                        }
+                        </select>
+                    </td>
+                    <td>
+                    <select class="UnitmDropdown">
+                        @foreach (var unit in Model.Units)
+                        {
+                                <option value="@unit.Id" class="unit">@unit.Name</option>
+                        }
+                    </select>
+                        </td>
+                <td><input asp-for="@Model.Units[0].Quantity" min="1" max="@Model.Units[0].Quantity" type="number" class="form-control quantity Quantity" value="1" id="quantity" /></td>
+                <td><input asp-for="@Model.Units[0].Price" class="form-control price Price" value="@Model.Units[0].Price " id="price" readonly /></td>
+                <td><input type="text" class="form-control total Total" readonly  /></td>
+                <td><input asp-for="@Model.Units[0].Discount" class="form-control discount Discount" value="@Model.Units[0].Discount " id="discount" readonly /></td>
+                <td><input type="text" class="form-control net Net" id="net" readonly  /></td>
+                </tr>
+            <button class="btn btn-primary" onclick="addRow()">Add Row</button>
+
+        </tbody>
+    </table>
+
+   @* <div class="row mb-3">
+        <div class="col-md-12">
+            <label>Taxes:</label>
+            <input  class="form-control" />
+        </div>
+        <div class="col-md-12">
+            <label>Net:</label>
+            <input class="form-control" />
+        </div>
+    </div>*@
+    <button type="submit" class="btn btn-success" id="submitInvoice">Save</button>
+    <button  class="btn btn-danger">Delete</button>
+</div>
+
+@section Scripts {
+    <script>
+
+        $(document).ready(function () {
+                let value2 = $('.price').val();
+            let value3 = $('.discount').val();
+                let value4 = $('.total').val();
+            $('.quantity').on('input', function () {
+                let value1 = $(this).val();
+                
+                let calculatedValue = value1 * value2;
+                let calculateNet = calculatedValue - (calculatedValue * (value3/100));
+
+                $('.total').val(calculatedValue);
+                $('.net').val(calculateNet);
+            });
+        });
+
+        function addRow() {
+            var index = $("#itemTable tbody tr").length;
+            var newRow = ` <tr>
+                            <td>
+                            <select id="storeItems" class="ItemDropdown">
+        @foreach (var item in Model.Items)
+        {
+                                        <option value="@item.Id" class="name">@item.Name</option>
+        }
+                                </select>
+                            </td>
+                            <td>
+                            <select class="UnitmDropdown">
+        @foreach (var unit in Model.Units)
+        {
+                                            <option value="@unit.Id" class="unit">@unit.Name</option>
+        }
+                            </select>
+                                </td>
+                        <td><input asp-for="@Model.Units[0].Quantity" min="1" max="@Model.Units[0].Quantity" type="number" class="form-control quantity Quantity" value="1" id="quantity" /></td>
+                        <td><input asp-for="@Model.Units[0].Price" class="form-control price Price" value="@Model.Units[0].Price " id="price" readonly /></td>
+                        <td><input type="text" class="form-control total Total" readonly  /></td>
+                        <td><input asp-for="@Model.Units[0].Discount" class="form-control discount Discount" value="@Model.Units[0].Discount " id="discount" readonly /></td>
+                        <td><input type="text" class="form-control net Net" id="net" readonly  /></td>
+                        </tr>
+           
+                        `;
+            $("#itemTable tbody").append(newRow);
+        }
+
+        function removeRow(button) {
+            $(button).closest("tr").remove();
+        }
+
+        $(document).ready(function () {
+           
+            $('#submitInvoice').click(function () {
+                let invoiceItems = [];
+               
+                $('#itemTable tbody tr').each(function () {
+                    let price = $(this).find('.price').val();
+                    let quantity = $(this).find('.quantity').val();
+                    let total = $(this).find('.total').val();
+                    let discount = $(this).find('.discount').val();
+                    let date = $('.date').val();
+                    invoiceItems.push({
+                        Date: date, StorId: $('.StoreDropdown').val(),
+                        ItemId: $('.ItemDropdown').val(), Quantity: quantity,
+                        TotalPrice: total, Price: price, TotalDicound: discount
+                    });
+                });
+
+                $.ajax({
+                    url: 'https://localhost:7268/api/Invoice',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(invoiceItems),
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader('Authorization', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhc2Rhc2RkYSIsImp0aSI6IjA3ZTFiYmRiLTk2Y2ItNDI3Ni1iNjk3LWEyZTAyODBiNzRhYyIsImVtYWlsIjoic3Rhc2RhcmluZyIsInVpZCI6IjQ0NGNkNDAyLWY0Y2MtNDk1Mi1iNjY5LTkwY2Q4NzhmMjc1MSIsInJvbGVzIjoiVXNlciIsImV4cCI6MTcwMTQwNDg3OSwiaXNzIjoiU2VjdXJlQXBpIiwiYXVkIjoiU2VjdXJlQXBpVXNlciJ9.xWqGbWe-rT_24puFM-ROtZ53dVhmPIQ1dY3JxwNKgVQ');
+                    },
+                    success: function (response) {
+                        alert(response); 
+                    },
+                    error: function (error) {
+                        alert('Error: ' + error); 
+                    }
+                });
+            });
+        });
+       
+
+    </script>
+    }
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
